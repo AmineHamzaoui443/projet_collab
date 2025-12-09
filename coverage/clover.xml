@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<coverage generated="1765275523572" clover="3.2.0">
-  <project timestamp="1765275523573" name="All files">
+<coverage generated="1765283251569" clover="3.2.0">
+  <project timestamp="1765283251569" name="All files">
     <metrics statements="55" coveredstatements="47" conditionals="34" coveredconditionals="24" methods="25" coveredmethods="19" elements="114" coveredelements="90" complexity="0" loc="55" ncloc="55" packages="1" files="1" classes="1"/>
     <file name="RoomsList.tsx" path="/home/mohamed/PROJECTS/reservation_app/reservation_app_frontend/src/pages/RoomsList.tsx">
       <metrics statements="55" coveredstatements="47" conditionals="34" coveredconditionals="24" methods="25" coveredmethods="19"/>
