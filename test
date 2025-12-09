@@ -1,0 +1,22 @@
+
+> reservation_app_frontend@0.1.0 test
+> vitest run --coverage
+
+
+[1m[46m RUN [49m[22m [36mv4.0.15 [39m[90m/home/mohamed/PROJECTS/reservation_app/reservation_app_frontend[39m
+      [2mCoverage enabled with [22m[33mv8[39m
+
+ [31m❯[39m src/pages/RoomsList.test.tsx [2m([22m[2m7 tests[22m[2m | [22m[31m2 failed[39m[2m)[22m[33m 2221[2mms[22m[39m
+     [32m✓[39m renders Loading... initially[32m 97[2mms[22m[39m
+     [32m✓[39m renders products returned by API[32m 15[2mms[22m[39m
+     [32m✓[39m handles empty product list[32m 13[2mms[22m[39m
+     [32m✓[39m shows an error message when API fails[32m 24[2mms[22m[39m
+[31m     [31m×[31m admin can open Add modal and create a product[39m[33m 1027[2mms[22m[39m
+[31m     [31m×[31m admin can edit and delete a product[39m[33m 1026[2mms[22m[39m
+     [32m✓[39m non-admin does not see admin controls[32m 16[2mms[22m[39m
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m2 failed[39m[22m[2m | [22m[1m[32m5 passed[39m[22m[90m (7)[39m
+[2m   Start at [22m 11:09:27
+[2m   Duration [22m 3.23s[2m (transform 148ms, setup 121ms, import 263ms, tests 2.22s, environment 408ms)[22m
+

@@ -20,8 +20,9 @@ export default function Login() {
   if (user) localStorage.setItem('sessionUser', JSON.stringify(user))
       navigate('/')
       window.location.reload()
-    } catch (err: any) {
-      const msg = err?.code === 'ECONNABORTED' || err?.message?.includes('timeout') ? 'Request timed out. Please check your network or that the backend is running.' : (err?.response?.data?.error || err?.response?.data?.message || String(err))
+    } catch (err: unknown) {
+      const e = err as { code?: string; message?: string; response?: { data?: { error?: string; message?: string } } }
+      const msg = e?.code === 'ECONNABORTED' || (e?.message && e.message.includes('timeout')) ? 'Request timed out. Please check your network or that the backend is running.' : (e?.response?.data?.error || e?.response?.data?.message || String(e))
       setError(msg)
     } finally {
       setLoading(false)

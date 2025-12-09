@@ -1,17 +1,18 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../lib/apiClient'
+import { Room } from '../types'
 
 export default function RentProduct() {
   const [date, setDate] = useState('')
   const [productId, setProductId] = useState<string>('')
-  const [products, setProducts] = useState<Array<any>>([])
+  const [products, setProducts] = useState<Room[]>([])
   const [notes, setNotes] = useState('')
   const [available, setAvailable] = useState<boolean | null>(null)
   const [loading, setLoading] = useState(false)
 
   useEffect(() => { // load products
-    api.get('/products').then(r => setProducts(r.data)).catch(() => setProducts([]))
+    api.get('/products').then(r => setProducts(r.data as Room[])).catch(() => setProducts([]))
   }, [])
 
   useEffect(() => {
@@ -19,7 +20,7 @@ export default function RentProduct() {
     // Ensure numeric product_id is sent to backend
     const pid = Number(productId)
     api.get('/book/availability', { params: { room_id: pid, date } })
-      .then(r => setAvailable(Boolean(r.data.available)))
+      .then(r => setAvailable(Boolean((r.data as { available?: boolean }).available)))
       .catch(() => setAvailable(null))
   }, [date, productId])
 
@@ -31,16 +32,15 @@ export default function RentProduct() {
     setLoading(true)
     try {
       const session = localStorage.getItem('sessionUser') ? JSON.parse(localStorage.getItem('sessionUser')!) : null
-      const payload: any = { room_id: Number(productId), notes }
-      if (session) payload.user_id = session.id
-      payload.date = date
+      const payload: { room_id: number; notes?: string; user_id?: number; date: string } = { room_id: Number(productId), notes, date }
+      if (session && typeof session.id === 'number') payload.user_id = session.id
       await api.post('/book', payload)
       // navigate to my reservations (client-side)
       navigate('/my-reservations')
-    } catch (err: any) {
-      // eslint-disable-next-line no-console
+    } catch (err: unknown) {
       console.error('Booking error', err)
-      alert(err?.response?.data?.error || 'Booking failed')
+      const ex = err as { response?: { data?: { error?: string } }; message?: string }
+      alert(ex?.response?.data?.error || ex?.message || 'Booking failed')
     } finally { setLoading(false) }
   }
 
@@ -58,7 +58,7 @@ export default function RentProduct() {
           <label className="form-label">Product</label>
           <select className="form-select" value={productId} onChange={(e) => setProductId(e.target.value)}>
             <option value="">Choose a product</option>
-            {products.map((r:any) => <option key={r.id} value={String(r.id)}>{r.name}</option>)}
+            {products.map((r: Room) => <option key={r.id} value={String(r.id)}>{r.name}</option>)}
           </select>
         </div>
         <div className="mb-3">

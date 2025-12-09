@@ -1,0 +1,100 @@
+name: Manual Frontend Pipeline
+
+on:
+  workflow_dispatch: # Allows manual button click launch
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: projectcollab25/reservation_app_frontend
+  WORKING_DIR: ./reservation_app_frontend
+
+jobs:
+  quality-and-delivery:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ env.WORKING_DIR }}
+    permissions:
+      contents: read
+      packages: write
+      security-events: write
+
+    steps:
+      # --- Step 1: Checkout & Install ---
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Required for SonarQube to detect "New Code"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: ${{ env.WORKING_DIR }}/package-lock.json
+
+      - name: Install Dependencies
+        run: npm ci
+
+      # --- Step 2: Linting ---
+      - name: Run ESLint
+        run: npm run lint
+
+      # --- Step 3: Unit Tests ---
+      - name: Run Tests (Coverage)
+        run: npm test -- --coverage
+
+      # --- Step 4: SonarQube Analysis ---
+      # --- Step 4: SonarQube Analysis ---
+      - name: SonarQube Cloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          projectBaseDir: ${{ env.WORKING_DIR }}
+          args: >
+            -Dsonar.projectKey=projectcollab25_reservation_app_frontend
+            -Dsonar.organization=projectcollab25
+            -Dsonar.sources=src
+            -Dsonar.tests=src/pages
+            -Dsonar.test.inclusions=src/**/*.test.tsx
+            -Dsonar.javascript.lcov.reportPaths=./reservation_app_frontend/coverage/lcov.info
+            -Dsonar.coverage.exclusions=**/*.test.tsx,**/*.spec.tsx,**/vite.config.ts,**/main.tsx
+
+      # --- Step 5: Build Image (Local) ---
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker Image (Local Load)
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ env.WORKING_DIR }}
+          load: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+      # --- Step 6: Scan Image (Trivy) ---
+      - name: Run Trivy Scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          format: 'table'
+          exit-code: '1' # Fail if CRITICAL bugs found
+          severity: 'CRITICAL,HIGH'
+
+      # --- Step 7: Push Image ---
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ env.WORKING_DIR }}
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:v1.0.${{ github.run_number }}

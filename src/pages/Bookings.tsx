@@ -5,20 +5,25 @@ import { Booking } from '../types'
 
 export default function Bookings() {
   const [roomId, setRoomId] = useState<number | ''>('')
-  const [start, setStart] = useState('')
-  const [end, setEnd] = useState('')
   const [filterUser, setFilterUser] = useState('')
   const [filterFrom, setFilterFrom] = useState('')
   const [filterTo, setFilterTo] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
-  const [appliedFilters, setAppliedFilters] = useState<any>(null)
+  interface AppliedFilters {
+    filterUser?: string
+    filterFrom?: string
+    filterTo?: string
+    filterStatus?: string
+    roomId?: number | ''
+  }
+  const [appliedFilters, setAppliedFilters] = useState<AppliedFilters | null>(null)
   const [toast, setToast] = useState<{ type: 'success'|'info'|'danger', message: string } | null>(null)
 
   const qc = useQueryClient()
   const { data, isLoading, error } = useQuery<Booking[]>({
     queryKey: ['bookings', appliedFilters],
     queryFn: async () => {
-      const params: any = {}
+      const params: Record<string, string | number> = {}
       if (appliedFilters) {
         const { filterUser: fu, filterFrom: ff, filterTo: ft, filterStatus: fs, roomId: rid } = appliedFilters
         if (fu) params.user = fu
@@ -28,14 +33,9 @@ export default function Bookings() {
         if (rid) params.room_id = rid
       }
       const res = await api.get('/book', { params })
-      return res.data
+      return res.data as Booking[]
     },
   })
-
-  const create = useMutation(async (payload: Partial<Booking>) => {
-    const res = await api.post('/book', payload)
-    return res.data
-  }, { onSuccess() { qc.invalidateQueries(['bookings']) } })
 
   const remove = useMutation(async (id: number) => {
     await api.delete(`/book/${id}`)
@@ -48,9 +48,9 @@ export default function Bookings() {
 
   if (isLoading) return <div>Loading...</div>
   if (error) {
-    // eslint-disable-next-line no-console
     console.error('Bookings error', error)
-    const msg = (error as any)?.response?.data?.error || (error as any)?.message || 'Error loading bookings'
+    const e = error as { response?: { data?: { error?: string } }; message?: string }
+    const msg = e?.response?.data?.error || e?.message || 'Error loading bookings'
     return <div style={{ color: 'red' }}>Error loading bookings: {msg}</div>
   }
 

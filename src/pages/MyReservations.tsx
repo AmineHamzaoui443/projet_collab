@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../lib/apiClient'
+import { Booking } from '../types'
 
 function fmt(dt?: string) {
   if (!dt) return ''
@@ -18,9 +19,9 @@ export default function MyReservations() {
   }
   const session = getSessionUser()
   const queryKey = session ? ['myBookings', { user_id: session.id }] : ['myBookings']
-  const { data, isLoading, isError, error } = useQuery(queryKey, () => {
+  const { data, isLoading, isError, error } = useQuery<Booking[]>(queryKey, () => {
     const url = session ? `/book/my?user_id=${encodeURIComponent(session.id)}` : '/book/my'
-    return api.get(url).then(r => r.data)
+    return api.get(url).then(r => r.data as Booking[])
   }, { retry: 0 })
   const del = useMutation((id: number) => api.delete(`/book/${id}`), {
     onSuccess: () => {
@@ -29,8 +30,9 @@ export default function MyReservations() {
       setErrorMsg(null)
       setTimeout(() => setMessage(null), 3000)
     },
-    onError: (err: any) => {
-      const msg = err?.response?.data?.error || err?.message || 'Failed to cancel reservation'
+    onError: (err: unknown) => {
+      const e = err as { response?: { data?: { error?: string } }; message?: string }
+      const msg = e?.response?.data?.error || e?.message || 'Failed to cancel reservation'
       setErrorMsg(String(msg))
       setMessage(null)
       setTimeout(() => setErrorMsg(null), 4000)
@@ -38,7 +40,10 @@ export default function MyReservations() {
   })
 
   if (isLoading) return <div className="container mt-3">Loading...</div>
-  if (isError) return <div className="container mt-3 text-danger">Failed to load reservations: {(error as any)?.message || 'Server error'}</div>
+  if (isError) {
+    const e = error as { message?: string }
+    return <div className="container mt-3 text-danger">Failed to load reservations: {e?.message || 'Server error'}</div>
+  }
 
   return (
     <div className="container mt-3">
@@ -46,7 +51,7 @@ export default function MyReservations() {
       {message && <div className="alert alert-success">{message}</div>}
       {errorMsg && <div className="alert alert-danger">{errorMsg}</div>}
       <div className="list-group">
-        {data && data.length ? data.map((b: any) => (
+        {data && data.length ? data.map((b: Booking) => (
           <div key={b.id} className="list-group-item d-flex justify-content-between align-items-start">
             <div>
               <div><strong>Room:</strong> {b.room_name || b.room_id}</div>

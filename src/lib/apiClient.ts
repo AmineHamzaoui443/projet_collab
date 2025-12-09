@@ -1,4 +1,4 @@
-import axios from 'axios'
+import axios, { AxiosRequestConfig, AxiosError, AxiosInstance } from 'axios'
 
 const devBase = '/api'
 // In production, prefer an explicit `VITE_API_URL` set at build time.
@@ -21,45 +21,46 @@ const api = axios.create({
 // Debug helpers: log baseURL and wire interceptors so the browser console shows requests/responses
 if (typeof window !== 'undefined') {
   // show which baseURL the client is using
-  // eslint-disable-next-line no-console
   console.info('[apiClient] baseURL:', baseURL, 'MODE:', import.meta.env.MODE)
 
-  api.interceptors.request.use((cfg) => {
-    // eslint-disable-next-line no-console
+  api.interceptors.request.use((cfg: AxiosRequestConfig) => {
     console.debug(`[apiClient] ${new Date().toISOString()} request ->`, cfg.method?.toUpperCase(), cfg.baseURL + (cfg.url || ''), cfg.data ?? '')
     try {
       const token = localStorage.getItem('token')
       if (token) {
-        (cfg.headers as any).authorization = `Bearer ${token}`
+        cfg.headers = cfg.headers ?? {}
+        ;(cfg.headers as Record<string, string>)['authorization'] = `Bearer ${token}`
       } else {
         // Dev-time fallback: if no JWT token is present but a sessionUser exists
         // keep attaching the legacy x-session-user header so local dev flows continue
         const s = localStorage.getItem('sessionUser')
-        if (s) (cfg.headers as any)['x-session-user'] = s
+        if (s) {
+          cfg.headers = cfg.headers ?? {}
+          ;(cfg.headers as Record<string, string>)['x-session-user'] = s
+        }
       }
-    } catch (e) {
+    } catch {
       // ignore
     }
     return cfg
   }, (err) => {
-    // eslint-disable-next-line no-console
     console.error('[apiClient] request error ->', err)
     return Promise.reject(err)
   })
 
   api.interceptors.response.use((res) => {
-    // eslint-disable-next-line no-console
     console.debug(`[apiClient] ${new Date().toISOString()} response <-`, res.status, res.config.url, res.data)
     return res
   }, (err) => {
-    // eslint-disable-next-line no-console
+    
     try {
-      console.error(`[apiClient] ${new Date().toISOString()} response error <-`, err?.response?.status, err?.config?.url, err?.message)
-    } catch (e) {
+      const aerr = err as AxiosError
+      console.error(`[apiClient] ${new Date().toISOString()} response error <-`, aerr?.response?.status, aerr?.config?.url, aerr?.message)
+    } catch {
       console.error('[apiClient] response error (unexpected)', err)
     }
     return Promise.reject(err)
   })
 }
 
-export default api
+export default api as AxiosInstance

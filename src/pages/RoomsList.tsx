@@ -1,14 +1,12 @@
-import React, { useState } from 'react'
-import { Link } from 'react-router-dom'
+import React, { ChangeEvent, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../lib/apiClient'
 import { Room } from '../types'
 
 // ProductsList is a theme rename: API endpoints now exposed at /api/products
 // but the underlying DB table remains `rooms`.
-export default function ProductsList() {
+export default function ProductsList(): JSX.Element {
   const qc = useQueryClient()
-  const [name, setName] = useState('')
   const [editing, setEditing] = useState<null | { id: number; name: string; capacity?: number; description?: string }>(null)
   const [showAddModal, setShowAddModal] = useState(false)
   const [newProductName, setNewProductName] = useState('')
@@ -25,13 +23,13 @@ export default function ProductsList() {
     queryKey: ['products'],
     queryFn: async () => {
       const res = await api.get('/products')
-      return res.data
+      return res.data as Room[]
     },
   })
 
   const create = useMutation(async (payload: Partial<Room>) => {
     const res = await api.post('/products', payload)
-    return res.data
+    return res.data as Room
   }, {
     onSuccess() { qc.invalidateQueries(['products']) }
   })
@@ -42,22 +40,17 @@ export default function ProductsList() {
 
   const saveEdit = useMutation(async (payload: Partial<Room> & { id: number }) => {
     const res = await api.put(`/products/${payload.id}`, payload)
-    return res.data
+    return res.data as Room
   }, { onSuccess() { qc.invalidateQueries(['products']); setEditing(null); } })
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault()
-    if (!name) return
-    await create.mutateAsync({ name })
-    setName('')
-  }
+  // Removed unused `submit` handler and `name` state to satisfy linter.
 
   if (isLoading) return <div>Loading...</div>
   if (error) {
     // Surface error details for debugging
-    // eslint-disable-next-line no-console
     console.error('RoomsList error', error)
-    const msg = (error as any)?.response?.data?.error || (error as any)?.message || 'Error loading rooms'
+    const e = error as unknown as { response?: { data?: { error?: string } }; message?: string }
+    const msg = e?.response?.data?.error || e?.message || 'Error loading rooms'
     return <div style={{ color: 'red' }}>Error loading rooms: {msg}</div>
   }
 
@@ -73,7 +66,7 @@ export default function ProductsList() {
       </div>
 
       <div className="row mt-3">
-        {data?.map(r => (
+        {data?.map((r: Room) => (
           <div className="col-12 col-md-6 col-lg-4 mb-3" key={r.id}>
             <div className="card card-hover">
               <div className="card-body">
@@ -81,10 +74,10 @@ export default function ProductsList() {
                 <p className="card-text">{r.description}</p>
                 <div>
                   {sessionUser?.role === 'admin' && (
-                    <button className="btn btn-sm btn-primary me-2" onClick={() => setEditing({ id: r.id, name: r.name, capacity: r.capacity, description: r.description })}><i className="bi bi-pencil" /> Edit</button>
-                  )}
-                  {sessionUser?.role === 'admin' && (
-                    <button className="btn btn-sm btn-danger" onClick={() => remove.mutate(r.id)}><i className="bi bi-trash" /> Delete</button>
+                    <>
+                      <button className="btn btn-sm btn-primary me-2" onClick={() => setEditing({ id: r.id, name: r.name, capacity: r.capacity, description: r.description })}><i className="bi bi-pencil" /> Edit</button>
+                      <button className="btn btn-sm btn-danger" onClick={() => remove.mutate(r.id)}><i className="bi bi-trash" /> Delete</button>
+                    </>
                   )}
                 </div>
               </div>
@@ -106,16 +99,16 @@ export default function ProductsList() {
               </div>
               <div className="modal-body">
                 <div className="mb-3">
-                  <label className="form-label">Name</label>
-                  <input className="form-control" value={newProductName} onChange={(e) => setNewProductName(e.target.value)} />
+                  <label htmlFor="addNameInput" className="form-label">Name</label>
+                  <input id="addNameInput" className="form-control" value={newProductName} onChange={(e: ChangeEvent<HTMLInputElement>) => setNewProductName(e.target.value)} />
                 </div>
                 <div className="mb-3">
-                  <label className="form-label">Capacity (optional)</label>
-                  <input className="form-control" type="number" value={newProductCapacity as any} onChange={(e) => setNewProductCapacity(e.target.value ? Number(e.target.value) : '')} />
+                  <label htmlFor="addCapacityInput" className="form-label">Capacity (optional)</label>
+                  <input id="addCapacityInput" className="form-control" type="number" value={typeof newProductCapacity === 'number' ? newProductCapacity : ''} onChange={(e: ChangeEvent<HTMLInputElement>) => setNewProductCapacity(e.target.value ? Number(e.target.value) : '')} />
                 </div>
                 <div className="mb-3">
-                  <label className="form-label">Description</label>
-                  <textarea className="form-control" value={newProductDesc} onChange={(e) => setNewProductDesc(e.target.value)} />
+                  <label htmlFor="addDescInput" className="form-label">Description</label>
+                  <textarea id="addDescInput" className="form-control" value={newProductDesc} onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setNewProductDesc(e.target.value)} />
                 </div>
               </div>
               <div className="modal-footer">
@@ -129,8 +122,9 @@ export default function ProductsList() {
                     setNewProductName('')
                     setNewProductDesc('')
                     setNewProductCapacity(1)
-                  } catch (err: any) {
-                    setAlert({ type: 'danger', message: err?.response?.data?.error || String(err) })
+                  } catch (err: unknown) {
+                    const ex = err as { response?: { data?: { error?: string } }; message?: string }
+                    setAlert({ type: 'danger', message: ex?.response?.data?.error || ex?.message || String(ex) })
                   }
                 }}>Create</button>
               </div>
@@ -150,16 +144,16 @@ export default function ProductsList() {
               </div>
               <div className="modal-body">
                 <div className="mb-3">
-                  <label className="form-label">Name</label>
-                  <input className="form-control" value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} />
+                  <label htmlFor="editNameInput" className="form-label">Name</label>
+                  <input id="editNameInput" className="form-control" value={editing.name} onChange={(e: ChangeEvent<HTMLInputElement>) => setEditing({ ...editing, name: e.target.value })} />
                 </div>
                 <div className="mb-3">
-                  <label className="form-label">Capacity</label>
-                  <input className="form-control" type="number" value={editing.capacity || 1} onChange={(e) => setEditing({ ...editing, capacity: Number(e.target.value) })} />
+                  <label htmlFor="editCapacityInput" className="form-label">Capacity</label>
+                  <input id="editCapacityInput" className="form-control" type="number" value={editing.capacity || 1} onChange={(e: ChangeEvent<HTMLInputElement>) => setEditing({ ...editing, capacity: Number(e.target.value) })} />
                 </div>
                 <div className="mb-3">
-                  <label className="form-label">Description</label>
-                  <textarea className="form-control" value={editing.description || ''} onChange={(e) => setEditing({ ...editing, description: e.target.value })} />
+                  <label htmlFor="editDescInput" className="form-label">Description</label>
+                  <textarea id="editDescInput" className="form-control" value={editing.description || ''} onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setEditing({ ...editing, description: e.target.value })} />
                 </div>
               </div>
               <div className="modal-footer">

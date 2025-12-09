@@ -21,8 +21,9 @@ export default function Register() {
   if (user) localStorage.setItem('sessionUser', JSON.stringify(user))
       navigate('/')
       window.location.reload()
-    } catch (err: any) {
-      setError(err?.response?.data?.error || err?.response?.data?.message || String(err))
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { error?: string; message?: string } }; message?: string }
+      setError(e?.response?.data?.error || e?.response?.data?.message || String(e))
     } finally {
       setLoading(false)
     }

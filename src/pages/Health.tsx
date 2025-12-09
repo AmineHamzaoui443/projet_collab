@@ -1,12 +1,19 @@
 import React, { useEffect, useState } from 'react'
 import api from '../lib/apiClient'
 
-export default function HealthPage() {
-  const [info, setInfo] = useState<any>(null)
+interface HealthInfo {
+  status: string
+  db?: string
+  backend_image?: string
+  frontend_image?: string
+}
+
+export default function HealthPage(): JSX.Element {
+  const [info, setInfo] = useState<HealthInfo | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    api.get('/health').then(r => setInfo(r.data)).catch(() => setInfo({ status: 'error' })).finally(() => setLoading(false))
+    api.get('/health').then(r => setInfo(r.data as HealthInfo)).catch(() => setInfo({ status: 'error' })).finally(() => setLoading(false))
   }, [])
 
   if (loading) return <div>Loading health...</div>
