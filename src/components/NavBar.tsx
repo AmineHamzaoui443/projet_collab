@@ -29,12 +29,12 @@ export default function NavBar() {
   return (
     <Navbar bg="light" expand="lg" className="mb-3">
       <Container>
-        <Navbar.Brand as={Link} to="/">Reservation App</Navbar.Brand>
+        <Navbar.Brand as={Link} to="/">Product Rental App</Navbar.Brand>
         <Navbar.Toggle aria-controls="main-nav" />
         <Navbar.Collapse id="main-nav">
           <Nav className="me-auto">
             {/* Always visible */}
-            <Nav.Link as={Link} to="/rooms">Rooms</Nav.Link>
+            <Nav.Link as={Link} to="/products">Products</Nav.Link>
 
             {/* Admin-only booking management */}
             {isAdmin && <Nav.Link as={Link} to="/bookings">Bookings</Nav.Link>}
@@ -42,7 +42,7 @@ export default function NavBar() {
             {/* Logged-in users can book and view reservations */}
             {isLoggedIn && (
               <>
-                <Nav.Link as={Link} to="/book-room">Book Room</Nav.Link>
+                <Nav.Link as={Link} to="/rent-product">Rent Product</Nav.Link>
                 <Nav.Link as={Link} to="/my-reservations">My Reservations</Nav.Link>
               </>
             )}

@@ -7,6 +7,7 @@ import RoomsList from '../pages/RoomsList'
 import RoomDetail from '../pages/RoomDetail'
 import Bookings from '../pages/Bookings'
 import BookRoom from '../pages/BookRoom'
+import HealthPage from '../pages/Health'
 import MyReservations from '../pages/MyReservations'
 import RequireAdmin from '../components/RequireAdmin'
 
@@ -16,15 +17,16 @@ export default function AppRouter() {
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
-      <Route path="/rooms" element={<RoomsList />} />
-      <Route path="/rooms/:id" element={<RoomDetail />} />
+      <Route path="/products" element={<RoomsList />} />
+      <Route path="/products/:id" element={<RoomDetail />} />
       <Route path="/bookings" element={
         <RequireAdmin>
           <Bookings />
         </RequireAdmin>
       } />
-  <Route path="/book-room" element={<BookRoom />} />
+  <Route path="/rent-product" element={<BookRoom />} />
   <Route path="/my-reservations" element={<MyReservations />} />
+  <Route path="/health" element={<HealthPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )

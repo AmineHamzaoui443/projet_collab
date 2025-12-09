@@ -1,7 +1,13 @@
 import axios from 'axios'
 
 const devBase = '/api'
-const prodBase = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+// In production, prefer an explicit `VITE_API_URL` set at build time.
+// If it's not set (or points to a localhost URL by mistake), fall back
+// to a relative `/api` path so the static server can proxy requests to
+// the backend (recommended for OpenShift). This prevents accidentally
+// baking a `http://localhost:3000` dev URL into production bundles.
+const rawProd = (import.meta.env.VITE_API_URL ?? '').trim()
+const prodBase = (rawProd && !/localhost|127\.0\.0\.1/.test(rawProd)) ? rawProd : '/api'
 
 const baseURL = (import.meta.env.MODE === 'development') ? devBase : prodBase
 
