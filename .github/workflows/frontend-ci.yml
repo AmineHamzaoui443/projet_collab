@@ -1,57 +1,62 @@
 name: Manual Frontend Pipeline
 
 on:
-  workflow_dispatch: # Allows manual button click launch
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: projectcollab25/reservation_app_frontend
-  WORKING_DIR: .
+  # Let's try the subfolder again, but without cache blocking us
+  WORKING_DIR: ./reservation_app_frontend
 
 jobs:
   quality-and-delivery:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ${{ env.WORKING_DIR }}
+    # We remove the global defaults to debug paths manually if needed
+    # defaults:
+    #   run:
+    #     working-directory: ${{ env.WORKING_DIR }}
     permissions:
       contents: read
       packages: write
       security-events: write
 
     steps:
-      # --- Step 1: Checkout & Install ---
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Required for SonarQube to detect "New Code"
+          fetch-depth: 0
+
+      # DEBUG STEP: This will show us the real folder structure in the logs
+      - name: List Files (Debug)
+        run: ls -R
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
-          cache-dependency-path: package.json
+          # Cache lines removed to prevent errors
 
       - name: Install Dependencies
-        run: npm ci
+        working-directory: ${{ env.WORKING_DIR }}
+        run: npm install 
+        # Changed to 'npm install' to be safer if lockfile is missing
 
-      # --- Step 2: Linting ---
       - name: Run ESLint
+        working-directory: ${{ env.WORKING_DIR }}
         run: npm run lint
 
-      # --- Step 3: Unit Tests ---
       - name: Run Tests (Coverage)
+        working-directory: ${{ env.WORKING_DIR }}
         run: npm test -- --coverage
 
-      # --- Step 4: SonarQube Analysis ---
-      # --- Step 4: SonarQube Analysis ---
       - name: SonarQube Cloud Scan
         uses: SonarSource/sonarcloud-github-action@master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
+          # We point Sonar directly to the subfolder
           projectBaseDir: ${{ env.WORKING_DIR }}
           args: >
             -Dsonar.projectKey=projectcollab25_reservation_app_frontend
@@ -59,10 +64,9 @@ jobs:
             -Dsonar.sources=src
             -Dsonar.tests=src/pages
             -Dsonar.test.inclusions=src/**/*.test.tsx
-            -Dsonar.javascript.lcov.reportPaths=./reservation_app_frontend/coverage/lcov.info
+            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
             -Dsonar.coverage.exclusions=**/*.test.tsx,**/*.spec.tsx,**/vite.config.ts,**/main.tsx
 
-      # --- Step 5: Build Image (Local) ---
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -73,16 +77,14 @@ jobs:
           load: true
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
 
-      # --- Step 6: Scan Image (Trivy) ---
       - name: Run Trivy Scanner
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
           format: 'table'
-          exit-code: '1' # Fail if CRITICAL bugs found
+          exit-code: '1'
           severity: 'CRITICAL,HIGH'
 
-      # --- Step 7: Push Image ---
       - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
