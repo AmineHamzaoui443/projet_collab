@@ -6,16 +6,15 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: projectcollab25/reservation_app_frontend
-  # Let's try the subfolder again, but without cache blocking us
-  WORKING_DIR: ./reservation_app_frontend
+  # CRITICAL FIX: Set this to '.' because your files are at the root
+  WORKING_DIR: .
 
 jobs:
   quality-and-delivery:
     runs-on: ubuntu-latest
-    # We remove the global defaults to debug paths manually if needed
-    # defaults:
-    #   run:
-    #     working-directory: ${{ env.WORKING_DIR }}
+    defaults:
+      run:
+        working-directory: ${{ env.WORKING_DIR }}
     permissions:
       contents: read
       packages: write
@@ -27,27 +26,19 @@ jobs:
         with:
           fetch-depth: 0
 
-      # DEBUG STEP: This will show us the real folder structure in the logs
-      - name: List Files (Debug)
-        run: ls -R
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          # Cache lines removed to prevent errors
+          # Cache removed to prevent path errors
 
       - name: Install Dependencies
-        working-directory: ${{ env.WORKING_DIR }}
-        run: npm install 
-        # Changed to 'npm install' to be safer if lockfile is missing
+        run: npm install
 
       - name: Run ESLint
-        working-directory: ${{ env.WORKING_DIR }}
         run: npm run lint
 
       - name: Run Tests (Coverage)
-        working-directory: ${{ env.WORKING_DIR }}
         run: npm test -- --coverage
 
       - name: SonarQube Cloud Scan
@@ -56,7 +47,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
-          # We point Sonar directly to the subfolder
+          # Pointing to root since WORKING_DIR is '.'
           projectBaseDir: ${{ env.WORKING_DIR }}
           args: >
             -Dsonar.projectKey=projectcollab25_reservation_app_frontend
