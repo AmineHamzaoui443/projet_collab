@@ -41,7 +41,7 @@ pipeline {
                             -Dsonar.projectKey=reservation_front \
                             -Dsonar.sources=./src \
                             -Dsonar.host.url=http://localhost:9000 \
-                            -Dsonar.login=$SONAR_TOKEN	
+                            -Dsonar.login=$SONAR_TOKEN
                         '''
                     }
                 }
@@ -68,14 +68,18 @@ pipeline {
 
         stage('Push Docker Image') {
             steps {
-                echo "🚀 Push vers GitHub Container Registry"
+                script {
+                    def IMAGE_NAME = "ghcr.io/projectcollab25/reservation-backend-jenkins"
+                    def IMAGE_TAG  = "${env.BUILD_NUMBER}"
+                    echo "🚀 Push des images ${IMAGE_NAME}:${IMAGE_TAG} et ${IMAGE_NAME}:latest vers GHCR"
 
-                // PAT GitHub enregistré dans Jenkins Credentials
-                withCredentials([string(credentialsId: 'GITHUB_PAT', variable: 'GITHUB_PAT')]) {
-                    sh '''
-                        echo $GITHUB_PAT | docker login ghcr.io -u aminehamzaoui443 --password-stdin
-                        docker push ghcr.io/aminehamzaoui443/reservation-frontend:latest
-                    '''
+                    withCredentials([string(credentialsId: 'GITHUB_PAT', variable: 'GITHUB_PAT')]) {
+                        sh """
+                            echo \$GITHUB_PAT | docker login ghcr.io -u AmineHamzaoui443 --password-stdin
+                            docker push ${IMAGE_NAME}:${IMAGE_TAG}
+                            docker push ${IMAGE_NAME}:latest
+                        """
+                    }
                 }
             }
         }
