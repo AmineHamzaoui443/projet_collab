@@ -5,17 +5,17 @@ pipeline {
 
         stage('Checkout & Install Dependencies') {
             steps {
-                echo "🔄 Checkout du code"
+                echo "🔄 Checkout du code frontend"
                 checkout scm
 
-                echo "📦 Installation des dépendances npm"
+                echo "📦 Installation des dépendances npm (frontend)"
                 sh 'npm install'
             }
         }
 
         stage('Linting') {
             steps {
-                echo "📝 Lint du code"
+                echo "📝 Lint du code frontend"
                 sh '''
                     npx eslint . --ext .ts,.tsx,.js || true
                 '''
@@ -24,22 +24,22 @@ pipeline {
 
         stage('Unit Tests') {
             steps {
-                echo "🧪 Tests unitaires"
+                echo "🧪 Tests unitaires frontend"
                 sh 'npm test'
             }
         }
 
         stage('SonarQube Analysis') {
             steps {
-                echo "🔍 Analyse SonarQube"
+                echo "🔍 Analyse SonarQube frontend"
 
                 withCredentials([string(credentialsId: 'SONARQUBE_TOKEN', variable: 'SONAR_TOKEN')]) {
                     withSonarQubeEnv('SonarQubeServer') {
                         sh '''
                             sonar-scanner \
-                            -Dsonar.projectKey=reservation_front \
+                            -Dsonar.projectKey=reservation_frontend \
                             -Dsonar.sources=./src \
-                            -Dsonar.host.url=http://localhost:9000 \
+                            -Dsonar.host.url=$SONAR_HOST_URL \
                             -Dsonar.login=$SONAR_TOKEN
                         '''
                     }
@@ -50,9 +50,9 @@ pipeline {
         stage('Docker Build') {
             steps {
                 script {
-                    def IMAGE_NAME = "ghcr.io/aminehamzaoui443/reservation-frontend-jenkins"
+                    def IMAGE_NAME = "ghcr.io/projectcollab25/reservation-frontend-jenkins"
                     def IMAGE_TAG  = "${env.BUILD_NUMBER}"
-                    echo "🐳 Build de l’image Docker frontend : ${IMAGE_NAME}:${IMAGE_TAG} et ${IMAGE_NAME}:latest"
+                    echo "🐳 Build de l'image Docker frontend : ${IMAGE_NAME}:${IMAGE_TAG}"
 
                     sh """
                         docker build --no-cache -t ${IMAGE_NAME}:${IMAGE_TAG} -t ${IMAGE_NAME}:latest .
@@ -64,7 +64,7 @@ pipeline {
         stage('Trivy Security Scan') {
             steps {
                 script {
-                    def IMAGE_NAME = "ghcr.io/aminehamzaoui443/reservation-frontend-jenkins"
+                    def IMAGE_NAME = "ghcr.io/projectcollab25/reservation-frontend-jenkins"
                     def IMAGE_TAG  = "${env.BUILD_NUMBER}"
                     echo "🔒 Scan Trivy sur l'image ${IMAGE_NAME}:${IMAGE_TAG}"
 
@@ -79,7 +79,7 @@ pipeline {
         stage('Push Docker Image') {
             steps {
                 script {
-                    def IMAGE_NAME = "ghcr.io/aminehamzaoui443/reservation-frontend-jenkins"
+                    def IMAGE_NAME = "ghcr.io/projectcollab25/reservation-frontend-jenkins"
                     def IMAGE_TAG  = "${env.BUILD_NUMBER}"
                     echo "🚀 Push des images ${IMAGE_NAME}:${IMAGE_TAG} et ${IMAGE_NAME}:latest vers GHCR"
 
@@ -97,10 +97,10 @@ pipeline {
 
     post {
         success {
-            echo "✅ Pipeline complète : Lint + Tests + Sonar + Docker + Trivy + Push !"
+            echo "✅ Pipeline frontend OK : Lint + Tests + Sonar + Docker + Trivy + Push !"
         }
         failure {
-            echo "❌ Pipeline échouée. Vérifie les logs."
+            echo "❌ Pipeline frontend échouée. Vérifie les logs."
         }
     }
 }
