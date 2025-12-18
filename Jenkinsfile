@@ -33,7 +33,6 @@ pipeline {
             steps {
                 echo "🔍 Analyse SonarQube"
 
-                // Sonar token enregistré dans Jenkins Credentials
                 withCredentials([string(credentialsId: 'SONARQUBE_TOKEN', variable: 'SONAR_TOKEN')]) {
                     withSonarQubeEnv('SonarQubeServer') {
                         sh '''
@@ -50,26 +49,37 @@ pipeline {
 
         stage('Docker Build') {
             steps {
-                echo "🐳 Build de l’image Docker"
-                sh '''
-                    docker build -t ghcr.io/aminehamzaoui443/reservation-frontend:latest .
-                '''
+                script {
+                    def IMAGE_NAME = "ghcr.io/aminehamzaoui443/reservation-frontend-jenkins"
+                    def IMAGE_TAG  = "${env.BUILD_NUMBER}"
+                    echo "🐳 Build de l’image Docker frontend : ${IMAGE_NAME}:${IMAGE_TAG} et ${IMAGE_NAME}:latest"
+
+                    sh """
+                        docker build --no-cache -t ${IMAGE_NAME}:${IMAGE_TAG} -t ${IMAGE_NAME}:latest .
+                    """
+                }
             }
         }
 
         stage('Trivy Security Scan') {
             steps {
-                echo "🔒 Scan Trivy"
-                sh '''
-                    trivy image --exit-code 1 --severity HIGH,CRITICAL ghcr.io/aminehamzaoui443/reservation-frontend:latest
-                '''
+                script {
+                    def IMAGE_NAME = "ghcr.io/aminehamzaoui443/reservation-frontend-jenkins"
+                    def IMAGE_TAG  = "${env.BUILD_NUMBER}"
+                    echo "🔒 Scan Trivy sur l'image ${IMAGE_NAME}:${IMAGE_TAG}"
+
+                    sh """
+                        trivy clean --scan-cache
+                        trivy image --exit-code 1 --severity HIGH,CRITICAL ${IMAGE_NAME}:${IMAGE_TAG}
+                    """
+                }
             }
         }
 
         stage('Push Docker Image') {
             steps {
                 script {
-                    def IMAGE_NAME = "ghcr.io/projectcollab25/reservation-backend-jenkins"
+                    def IMAGE_NAME = "ghcr.io/aminehamzaoui443/reservation-frontend-jenkins"
                     def IMAGE_TAG  = "${env.BUILD_NUMBER}"
                     echo "🚀 Push des images ${IMAGE_NAME}:${IMAGE_TAG} et ${IMAGE_NAME}:latest vers GHCR"
 
